@@ -1,0 +1,288 @@
+#include<stdio.h>
+#include<conio.h>
+#include<string.h>
+#include<stdlib.h>
+#include<windows.h>
+
+//structure for holding the variables
+struct phonebook
+{
+    char name[100];
+    char address[100];
+    char phone[100];
+    char email[100];
+};
+
+void menu();  //main menu
+void add(FILE *);   //addd contact
+void read(FILE *);  //read contact
+void del(FILE *);   //delete contact
+void modify(FILE *);    //modify contact
+struct phonebook basicdetail();  //structure function to take input for 1 contact object
+void search(FILE *);    //search contact
+int check(char [], char []);   //helper for searching contact
+void mainmenu();    //returns to main function
+void open(FILE *);  //helps to open the file
+void close(FILE *); //helps to close the file
+
+int main()
+{
+    system("cls");
+    menu(); //to display the menu and take the choice of the user
+}
+
+void menu()
+{
+    printf("\t\t\t\t\tPlease Wait loading....\n");
+    FILE *fp;
+    fp = fopen("record.txt","rb+");//open file in read mode
+    if(fp == NULL)
+    {
+        fp = fopen("record.txt","wb+");//open file in write mode
+        if(fp == NULL)
+        {
+            printf("Cannot open the file..");   //file cannot be found
+        }
+    }
+    system("cls");
+    int choice;
+    char ch;
+    int result;
+    printf("\n\n");
+    printf("\n\t-------------------------------------\n");
+    printf("\t\tPhoneBook\n");
+    printf("\n\t-------------------------------------\n");
+    printf("\n1. Add a new contact");
+    printf("\n2. View all the contacts");
+    printf("\n3. Search For a contacts");
+    printf("\n4. Modify Contacts");
+    printf("\n5.Delete contact");
+    printf("\n6. Exit");
+
+    printf("\n\n\t\tEnter your Choice\n\n");
+    fflush(stdin);
+    scanf("%d",&choice);
+    system("cls");
+    switch(choice)  //switch case to choose a function to be done on the contact
+    {
+
+        case 1: add(fp);
+        break;
+        case 2: read(fp);
+        break;
+        case 3: search(fp);
+        break;
+        case 4: modify(fp);
+        break;
+        case 5: del(fp);
+        break;
+        case 6: exit(0);
+        break;
+
+        default: system("cls");
+        printf("\n\tEnter the value between 1 and 6:\n");
+        mainmenu();
+
+    }
+}
+
+void mainmenu() //middle function to link with the main menu function
+{
+    char key;
+    printf("\n\n\t\t Press any key for the main menu...");
+    key = getche();
+    if(key != ' ')
+        system("cls");
+    menu();
+}
+
+
+struct phonebook basicdetail()    //helper function to take the details of each contact. is called everytime a new contact is added
+{
+    system("cls");
+    struct phonebook ph;
+    printf("\n\t\t---------------------------------------\n");
+    printf("\t\tEnter the phonebook entries\n");
+    printf("\n\t\t---------------------------------------\n");
+    printf("\n\t\tEnter the name:\n");
+    scanf("%s",&ph.name);
+    printf("\n\t\tEnter the phone number:\n");
+    scanf("%s",&ph.phone);
+    printf("\n\t\tEnter the email id:\n");
+    scanf("%s",&ph.email);
+    printf("\n\t\tEnter the address:\n");
+    scanf("%s",&ph.address);
+    return ph;
+};
+
+void add(FILE *fp)  //function to add detail
+{
+    char choice = 'Y';
+    struct phonebook ph;//structure variable
+    while(choice== 'Y' || choice == 'y')    //while the user presses yes to add detail
+    {
+        system("cls");
+        ph = basicdetail();//function to take input
+        fseek(fp,0,SEEK_END);   //fseek() function to add offset and end position to the file pointer
+        fwrite(&ph,sizeof(ph),1,fp);    //to write to the positon starting at ph and offset at sixeof(ph) into the file
+        printf("\n\n\t\t----------------------------");
+        printf("\n\n\t\tAdded Sucessfully");
+        printf("\n\n\t\t----------------------------");
+        printf("\nDo you want to continue? (Y/N):");
+        fflush(stdin);
+        choice = getche();  //reading the choice
+    }
+
+    if(choice != 'Y' || choice != 'y')  //if the user presses other keys display the mainmenu
+    {
+        fclose(fp);
+        system("cls");
+        menu();
+    }
+}
+
+void del(FILE *fp)
+{
+    system("cls");
+    printf("\n\t-------------------------------------------\n");
+    printf("\n\tDelete a contact\n");
+    printf("\n\t-------------------------------------------\n");
+    struct phonebook ph;
+    FILE *temp;
+    int count =0;
+    char name[50];
+    temp = fopen("temp.txt","wb+"); //open another file as a temporary file
+    printf("\n\t\t Enter the contact name to delete:");
+    scanf("%s",&name);  //read a name to delete
+    rewind(fp); //reset the starting point of the file pointer to the starting of the file
+    while(fread(&ph,sizeof(ph),1,fp) == 1)  //reads the structure variables till the end of the file
+    {
+        if(strcmp(strupr(ph.name),strupr(name))!=0) //change both the file string and user string to upper case and then compare
+        {
+            fwrite(&ph,sizeof(ph),1,temp);  //writes the structure variables into another file if strings are not equal
+        }
+        else
+        {
+            count++;
+        }
+    }
+    fclose(fp);
+    fclose(temp);
+    remove("record.txt");
+    rename("temp.txt","record.txt");    //exchanging the name and changing the old name to the new name
+    fp = fopen("record.txt","rb+");
+    if(count!=0)
+    printf("\n\n record deleted sucessfully");
+    else
+        printf("\n no record found");
+    fclose(fp);
+    mainmenu();
+
+}
+
+void read(FILE *fp) //function to read the file using the structure pointers
+{
+    int count=0;
+    char key;
+    rewind(fp);
+    struct phonebook ph;
+    printf("\n\t\t------------------------------------------\n");
+    printf("\n\t\tDisplaying all the contacts\n");
+    printf("------------------------------------------\n");
+    while(fread(&ph,sizeof(ph),1,fp) == 1)  //read the structure variables until eof
+    {
+        count++;
+        printf("\n\t\t Name: %s \n\t\t Address: %s \n\t\t Email: %s\n\t\t Phone: %s\n\n",ph.name,ph.address,ph.email,ph.phone);
+    }
+    if(count == 0)
+    {
+        printf("\n-------------------------------------------");
+        printf("\n \t\tNothing to display\n");
+        printf("\n-------------------------------------------");
+    }
+    fclose(fp);
+    mainmenu();
+}
+
+void modify(FILE *fp)
+{
+    system("cls");
+    printf("\n\t------------------------------------");
+    printf("\n\t\tModifying the Contact\n");
+    printf("\n\t------------------------------------\n");
+    rewind(fp);
+    int count =0;
+    struct phonebook ph;
+    char name[50];
+    printf("\n Enter the name to be modified: ");
+    scanf("%s",&name);
+
+    while(fread(&ph,sizeof(ph),1,fp)==1)
+    {
+            if(strcmp(strupr(ph.name),strupr(name)) == 0)   //scan for the name user gives and compare with each name and modify
+            {
+                count++;
+                ph = basicdetail(); //take the input for the contact
+                fseek(fp,-sizeof(ph),SEEK_CUR); //set the offset to the beginning of the line and the end to the current location
+                fwrite(&ph,sizeof(ph),1,fp);    //write the new data into the line by repacing the given line
+                break;
+            }
+    }
+    if(count != 0)
+    printf("\n\n\t\tModified Sucessfully\n\n");
+    else
+        printf("No entry found to be modified:");
+    fclose(fp);
+    mainmenu();
+
+}
+
+void search(FILE *fp)
+{
+    printf("\n\t\t-------------------------------------\n ");
+    printf("Searching...");
+    printf("\n\t\t-------------------------------------\n");
+    struct phonebook ph;
+    int res;
+    int count =0;
+    char item[50];
+    printf("\n\n\t Enter name you would like to search:");
+    scanf("%s",&item);
+    while(fread(&ph,sizeof(ph),1,fp)==1)
+    {
+        res = check(ph.name,item);  //call the function check that compares two strings
+        if(res == 1)
+        {
+            count++;
+            printf("\n\t\t Name: %s\n\t\t Number: %s\n\t\t Email: %s \n\t\t Address: %s",ph.name, ph.phone,ph.email,ph.address);
+        }
+    }
+    fclose(fp);
+    if(count ==0)
+        printf("\n\t\t No name found ");
+    mainmenu();
+}
+
+int check(char a[],char b[])
+{
+    int i,j;
+    char *p,temp[100];
+    if(strlen(a)>= strlen(b))
+    {
+        for(i=0;i<=(strlen(a)-strlen(b));i++)
+        {
+            p = &a[i];  //assign p with the address of the name variables of contacts
+            j=0;
+            while(j!= strlen(b))    //store the name of each contact into the temp array
+            {
+                    temp[j] = *(p+j);
+                    j++;
+            }
+            temp[j] = '\0'; //assign null to the end of the name
+            if(strcmp(strupr(temp),strupr(b)) == 0) //compare name with the name user gives as input
+            {
+                return 1;   //retrun 1 if the name mathces with the name given by the user
+            }
+        }
+    }
+}
